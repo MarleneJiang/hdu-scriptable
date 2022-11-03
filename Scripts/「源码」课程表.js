@@ -308,7 +308,7 @@ class Widget extends Base {
     this.API[i].map((t) => {
       const r = new UITableRow();
       r.addText((tmp[1] === t.id ? "✅ " : "") + t["name"]);
-      r.onSelect = (n) => {
+      r.onSelect = async (n) => {
         // 保存设置
         let _t = "today";
         _t = i === 1 ? "now" : _t; // today / now
@@ -316,13 +316,14 @@ class Widget extends Base {
         this.SETTINGS = v;
         this.settings["node"] = v;
         this.saveSettings(true);
+        if (t["id"] == "withExpt") {
+          await this.setExptPwd();
+        }
       };
       table.addRow(r);
     });
     table.present(false);
-    if (this.SETTINGS.split("@")[1] == "withExpt") {
-      await this.setExptPwd();
-    }
+    
   }
 
   async setUser() {
@@ -359,6 +360,9 @@ class Widget extends Base {
     a.addCancelAction("取消");
     const i = await a.presentAlert();
     if (i == -1) {
+      this.SETTINGS = `${this.SETTINGS.split("@")[0]}@withExptDefault`;
+      this.settings["node"] = this.SETTINGS;
+      this.saveSettings(false);
       return;
     }
     if (!a.textFieldValue(0)) {
@@ -380,7 +384,7 @@ class Widget extends Base {
     const scripts = {
       moduleName: "「妙妙屋」杭电课表",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.3",
+      version: "1.0.4",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +

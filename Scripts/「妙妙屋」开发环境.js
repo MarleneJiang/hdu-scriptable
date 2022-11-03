@@ -3,7 +3,7 @@
 // icon-color: deep-gray; icon-glyph: code-branch;
 // 
 // 「妙妙屋」
-// 开发环境，用于小组件调用
+// 想魔改？快来吧。有任何问题可以去https://support.qq.com/products/452934 问问哦。
 // 
 
 // 组件基础类
