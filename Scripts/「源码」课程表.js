@@ -228,6 +228,9 @@ class Widget extends Base {
     await this.updateVersion();
     // 解析设置，判断类型，获取对应数据
     const tmp = this.SETTINGS.split("@");
+    if (tmp[1] == "withExpt" && !this.settings["expt_pwd"]) {
+      await this.setExptPwd();
+    }
     return await this.getDataForToday(
       this.settings["hdu_username"],
       this.settings["hdu_password"],
@@ -384,7 +387,7 @@ class Widget extends Base {
     const scripts = {
       moduleName: "「妙妙屋」杭电课表",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.4",
+      version: "1.0.7",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
@@ -402,19 +405,19 @@ class Widget extends Base {
       const NAME = scripts.moduleName;
 
       const FPATH = FileManager.local().documentsDirectory() + `/${NAME}.js`;
-
+// 這裏不能格式化，否則會報錯！！
       const js = `// Variables used by Scriptable.
-      // These must be at the very top of the file. Do not edit.
-      // icon-color: pink; icon-glyph: map-pin;
-      /************************
-              「妙妙屋」
-          致力于杭电生活一卡通
-      问题反馈：https://support.qq.com/products/452934
-      *************************/
-  
-      module.__DEBUG__ = false;
-      module.__VERSION__ = '${p[scripts.moduleName].version}';
-      ${res}`;
+// These must be at the very top of the file. Do not edit.
+// icon-color: pink; icon-glyph: map-pin;
+/************************
+        「妙妙屋」
+    致力于杭电生活一卡通
+问题反馈：https://support.qq.com/products/452934
+*************************/
+
+module.__DEBUG__ = false;
+module.__VERSION__ = '${p[NAME].version}';
+${res}`;
       FileManager.local().writeString(FPATH, js);
       try {
         const RPATH = FileManager.iCloud().documentsDirectory() + `/${NAME}.js`;
@@ -435,7 +438,7 @@ class Widget extends Base {
         this.notify(
           "更新失败",
           "更新失败!请手动更新。",
-          p[scripts.moduleName].url
+          p[NAME].url
         );
       }
     }
