@@ -24,23 +24,37 @@ class Widget extends Base {
       // today
       [
         {
-          id: "withExpt",
-          name: "获得大物实验课详细内容(使用默认密码)",
+          id: "withoutExpt",
+          expt: false,
+          name: "不获取大物实验详情",
         },
         {
-          id: "withoutExpt",
-          name: "不获取大物实验课详细内容",
+          id: "withExptDefault",
+          expt: true,
+          name: "获取大物实验课详情(使用默认密码)",
+        },
+        {
+          id: "withExpt",
+          expt: true,
+          name: "获取大物实验课详情(设置密码)",
         },
       ],
       // now
       [
         {
-          id: "withExpt",
-          name: "获得大物实验课详细内容(使用默认密码)",
+          id: "withoutExpt",
+          expt: false,
+          name: "不获取大物实验详情",
         },
         {
-          id: "withoutExpt",
-          name: "不获取大物实验课详细内容",
+          id: "withExptDefault",
+          expt: true,
+          name: "获取大物实验课详情(使用默认密码)",
+        },
+        {
+          id: "withExpt",
+          expt: true,
+          name: "获取大物实验课详情(设置密码)",
         },
       ],
     ];
@@ -81,7 +95,7 @@ class Widget extends Base {
     }
     let data = [];
     data = await this.getData();
-    if (data.length == 0 && this.SETTINGS.split("@")[0] == "today") {
+    if (data.length == 0) {
       let w = new ListWidget();
       w.addSpacer();
       let body = w.addStack();
@@ -106,7 +120,13 @@ class Widget extends Base {
 
   async renderWidget(data, data_num) {
     let w = new ListWidget();
-    w.backgroundColor = Color.dynamic(new Color('#EFEFF4'), new Color('#1c1c1d'));
+    w.backgroundColor = Color.dynamic(
+      new Color("#EFEFF4"),
+      new Color("#1c1c1d")
+    );
+
+    const Courses = [];
+    let finish_num = 0;
     const startTime = [
       [8, 5],
       [8, 55],
@@ -119,36 +139,45 @@ class Widget extends Base {
       [16, 5],
       [18, 30],
     ];
-    let finish_num = 0;
-    data.forEach((course, index) => {
-      if (!compareNowTime(startTime[course.startSection - 1])) {
-        finish_num++;
+    data.forEach((course) => {
+      if (this.SETTINGS.split("@")[0] == "today") {
+        if (!compareNowTime(startTime[course.startSection - 1])) {
+          finish_num++;
+        }
+        Courses.push(course);
+      } else {
+        if (compareNowTime(startTime[course.startSection - 1])) {
+          Courses.push(course);
+        } else {
+          finish_num++;
+        }
       }
     });
+
     await this.renderHeader(
       w,
       this.logo,
       this.name +
-        "(" +
-        finish_num.toString() +
-        "/" +
-        data.length.toString() +
-        ")" +
-        "  " +
-        "周" +
-        "日一二三四五六".charAt(new Date().getDay())
+      "(" +
+      finish_num.toString() +
+      "/" +
+      data.length.toString() +
+      ")" +
+      "  " +
+      "周" +
+      "日一二三四五六".charAt(new Date().getDay())
     );
     w.addSpacer();
     let body = w.addStack();
     let bodyleft = body.addStack();
     bodyleft.layoutVertically();
-    let length = data.length;
+    let length = Courses.length;
     if (length > data_num) {
       length = data_num;
     }
     if (length != 0) {
       for (let i = 0; i < length; i++) {
-        bodyleft = await this.renderCell(bodyleft, data[i]);
+        bodyleft = await this.renderCell(bodyleft, Courses[i]);
         bodyleft.addSpacer(6);
       }
     } else {
@@ -172,7 +201,7 @@ class Widget extends Base {
     let body = widget.addStack();
 
     body.setPadding(10, 10, 10, 10);
-    body.backgroundColor = Color.dynamic(Color.white(), new Color('#2c2c2d'));
+    body.backgroundColor = Color.dynamic(Color.white(), new Color("#2c2c2d"));
     body.cornerRadius = 10;
     body.url = this.actionUrl("open-url", course["url"]);
     let left = body.addStack();
@@ -199,48 +228,25 @@ class Widget extends Base {
     await this.updateVersion();
     // 解析设置，判断类型，获取对应数据
     const tmp = this.SETTINGS.split("@");
-    switch (tmp[0]) {
-      case "today":
-        return await this.getDataForToday(
-          this.settings["hdu_username"],
-          this.settings["hdu_password"],
-          tmp[1] == "withExpt"
-        );
-      case "now":
-        return await this.getDataForNow(
-          this.settings["hdu_username"],
-          this.settings["hdu_password"],
-          tmp[1] == "withExpt"
-        );
-    }
+    return await this.getDataForToday(
+      this.settings["hdu_username"],
+      this.settings["hdu_password"],
+      tmp[1] == "withExpt" || tmp[1] == "withExptDefault",
+      !!this.settings["expt_pwd"] ? this.settings["expt_pwd"] : "123456"
+    );
   }
 
   /**
-   * 获取今日课表数据
+   * 获取课表数据
    * @param {boolean} withExpt 是否包含实验课
    */
-  async getDataForToday(username, password, withExpt = false) {
-    let url = `http://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&withExpt=${withExpt}&sourse=ios`;
-    let arr = await this.fetchAPI(url);
-
-    let datas = [];
-    for (let i = 0; i < arr.length; i++) {
-      let t = arr[i];
-      datas.push({
-        url: `https://skl.hduhelp.com/#/call/course`,
-        ...t,
-      });
-    }
-
-    return datas;
-  }
-
-  /**
-   * 获取今日剩余课表数据
-   * @param {boolean} withExpt 是否包含实验课
-   */
-  async getDataForNow(username, password, withExpt = false) {
-    let url = `http://lis.marlene.top/getSklNowCourse?username=${username}&password=${password}&withExpt=${withExpt}&sourse=ios`;
+  async getDataForToday(
+    username,
+    password,
+    withExpt = false,
+    exptPwd = "123456"
+  ) {
+    let url = `http://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&withExpt=${withExpt}&exptPwd=${exptPwd}&sourse=ios`;
     let arr = await this.fetchAPI(url);
 
     let datas = [];
@@ -265,7 +271,7 @@ class Widget extends Base {
           "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1 Edg/85.0.4183.102",
       };
       data = await (json ? req.loadJSON() : req.loadString());
-    } catch (e) {}
+    } catch (e) { }
     // 判断数据是否为空（加载失败）
     if (!data) {
       // 判断是否有缓存
@@ -305,7 +311,7 @@ class Widget extends Base {
       r.onSelect = (n) => {
         // 保存设置
         let _t = "today";
-        _t = i === 1 ? "now" : _t;
+        _t = i === 1 ? "now" : _t; // today / now
         let v = `${_t}@${t["id"]}`;
         this.SETTINGS = v;
         this.settings["node"] = v;
@@ -314,42 +320,71 @@ class Widget extends Base {
       table.addRow(r);
     });
     table.present(false);
+    if (this.SETTINGS.split("@")[1] == "withExpt") {
+      await this.setExptPwd();
+    }
   }
 
   async setUser() {
-      const a = new Alert();
-      a.title = "账户设置";
-      a.message = "设置数字杭电账户";
-      a.addTextField("学号");
-      a.addSecureTextField("密码");
-      a.addAction("确定");
-      a.addCancelAction("取消");
-      const i = await a.presentAlert();
-      if (i == -1) {
-        return;
-      }
-      if (!a.textFieldValue(0) || !a.textFieldValue(1)) {
-        const b = new Alert();
-        b.title = "错误，账户或密码为空";
-        b.message = "请重新设置";
-        b.addAction("确定");
-        await b.presentAlert();
-      } else {
-        this.settings["hdu_username"] = a.textFieldValue(0);
-        this.settings["hdu_password"] = a.textFieldValue(1);
-        this.saveSettings(true);
-      }
+    const a = new Alert();
+    a.title = "账户设置";
+    a.message = "设置数字杭电账户";
+    a.addTextField("学号");
+    a.addSecureTextField("密码");
+    a.addAction("确定");
+    a.addCancelAction("取消");
+    const i = await a.presentAlert();
+    if (i == -1) {
+      return;
+    }
+    if (!a.textFieldValue(0) || !a.textFieldValue(1)) {
+      const b = new Alert();
+      b.title = "错误，账户或密码为空";
+      b.message = "请重新设置";
+      b.addAction("确定");
+      await b.presentAlert();
+    } else {
+      this.settings["hdu_username"] = a.textFieldValue(0);
+      this.settings["hdu_password"] = a.textFieldValue(1);
+      this.saveSettings(true);
+    }
+  }
+
+  async setExptPwd() {
+    const a = new Alert();
+    a.title = "账户设置";
+    a.message = "设置大物实验账户密码";
+    a.addSecureTextField("密码");
+    a.addAction("确定");
+    a.addCancelAction("取消");
+    const i = await a.presentAlert();
+    if (i == -1) {
+      return;
+    }
+    if (!a.textFieldValue(0)) {
+      const b = new Alert();
+      b.title = "错误，密码为空";
+      b.message = "请重新设置";
+      b.addAction("确定");
+      await b.presentAlert();
+      this.SETTINGS = `${this.SETTINGS.split("@")[0]}@withExptDefault`;
+      this.settings["node"] = this.SETTINGS;
+      this.saveSettings(false);
+    } else {
+      this.settings["expt_pwd"] = a.textFieldValue(0);
+      this.saveSettings(true);
+    }
   }
 
   async updateVersion() {
     const scripts = {
       moduleName: "「妙妙屋」杭电课表",
-      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/hduCourse.js",
-      version: "1.0.2",
+      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
+      version: "1.0.3",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
-        +new Date()
+      +new Date()
     );
     const p = await vreq.loadJSON();
     if (
@@ -384,9 +419,20 @@ class Widget extends Base {
         console.log("pass icloud..");
       }
       if (FileManager.local().fileExists(FPATH)) {
-        this.notify("更新成功", scripts.moduleName+"小组件已更新至"+p[scripts.moduleName].version+"！稍后刷新生效。有任何问题欢迎反馈！", "https://support.qq.com/products/452934");
+        this.notify(
+          "更新成功",
+          scripts.moduleName +
+          "小组件已更新至" +
+          p[scripts.moduleName].version +
+          "！稍后刷新生效。有任何问题欢迎反馈！",
+          "https://support.qq.com/products/452934"
+        );
       } else {
-        this.notify("更新失败", "更新失败!请手动更新。", p[scripts.moduleName].url);
+        this.notify(
+          "更新失败",
+          "更新失败!请手动更新。",
+          p[scripts.moduleName].url
+        );
       }
     }
   }
@@ -406,8 +452,8 @@ function compareNowTime(time) {
 function getChineseDate() {
   return new Date(
     new Date().getTime() +
-      new Date().getTimezoneOffset() * 60 * 1000 +
-      8 * 60 * 60 * 1000
+    new Date().getTimezoneOffset() * 60 * 1000 +
+    8 * 60 * 60 * 1000
   );
 }
 
