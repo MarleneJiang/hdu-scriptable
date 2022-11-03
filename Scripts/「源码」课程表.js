@@ -348,7 +348,7 @@ class Widget extends Base {
     const scripts = {
       moduleName: "「妙妙屋」杭电课表",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/hduCourse.js",
-      version: "1.0.0",
+      version: "1.0.1",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
