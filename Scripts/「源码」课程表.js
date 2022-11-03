@@ -17,7 +17,7 @@ class Widget extends Base {
     super(arg);
     this.logo =
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/logo.png";
-    this.name = " 每日委托 ";
+    this.name = "每日委托";
     this.desc = "hdu all in one";
     // 请求数据接口列表（收集整理中）
     this.API = [
@@ -106,8 +106,7 @@ class Widget extends Base {
 
   async renderWidget(data, data_num) {
     let w = new ListWidget();
-
-    w.backgroundColor = Color.dynamic(Color.lightGray(), Color.darkGray());
+    w.backgroundColor = Color.dynamic(new Color('#EFEFF4'), new Color('#1c1c1d'));
     const startTime = [
       [8, 5],
       [8, 55],
@@ -135,7 +134,7 @@ class Widget extends Base {
         "/" +
         data.length.toString() +
         ")" +
-        " / " +
+        "  " +
         "周" +
         "日一二三四五六".charAt(new Date().getDay())
     );
@@ -173,7 +172,7 @@ class Widget extends Base {
     let body = widget.addStack();
 
     body.setPadding(10, 10, 10, 10);
-    body.backgroundColor = Color.dynamic(Color.white(), Color.black());
+    body.backgroundColor = Color.dynamic(Color.white(), new Color('#2c2c2d'));
     body.cornerRadius = 10;
     body.url = this.actionUrl("open-url", course["url"]);
     let left = body.addStack();
@@ -318,7 +317,6 @@ class Widget extends Base {
   }
 
   async setUser() {
-    if (!this.settings["hdu_username"] || !this.settings["hdu_password"]) {
       const a = new Alert();
       a.title = "账户设置";
       a.message = "设置数字杭电账户";
@@ -341,14 +339,13 @@ class Widget extends Base {
         this.settings["hdu_password"] = a.textFieldValue(1);
         this.saveSettings(true);
       }
-    }
   }
 
   async updateVersion() {
     const scripts = {
       moduleName: "「妙妙屋」杭电课表",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/hduCourse.js",
-      version: "1.0.1",
+      version: "1.0.2",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
@@ -359,7 +356,7 @@ class Widget extends Base {
       p[scripts.moduleName] &&
       p[scripts.moduleName].version > scripts.version
     ) {
-      const URL = scripts.url + "?_=" + +new Date();
+      const URL = p[scripts.moduleName].url + "?_=" + +new Date();
       const req = new Request(URL);
       const res = await req.loadString();
 
@@ -386,15 +383,11 @@ class Widget extends Base {
       } catch (e) {
         console.log("pass icloud..");
       }
-      const a = new Alert();
       if (FileManager.local().fileExists(FPATH)) {
-        a.title = scripts.moduleName + "更新成功!";
+        this.notify("更新成功", scripts.moduleName+"小组件已更新至"+p[scripts.moduleName].version+"！稍后刷新生效。有任何问题欢迎反馈！", "https://support.qq.com/products/452934");
       } else {
-        a.title = scripts.moduleName + "更新失败!请手动更新。";
-        await Safari.open(p[scripts.moduleName].url);
+        this.notify("更新失败", "更新失败!请手动更新。", p[scripts.moduleName].url);
       }
-      a.addAction("OK");
-      await a.presentAlert();
     }
   }
 }
@@ -422,3 +415,6 @@ function getChineseDate() {
 
 const { Testing } = require("./「妙妙屋」开发环境");
 await Testing(Widget);
+
+//node pack.js Scripts/「源码」课程表.js
+//node encode.js Dist/「妙妙屋」课程表.js
