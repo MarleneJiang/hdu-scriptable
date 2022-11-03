@@ -42,3 +42,6 @@ $ node encode.js Dist/「妙妙屋」你的小组件.js
 > 将会在 `Dist` 目录生成 `「妙妙屋」你的小组件.enc.js` 文件    
 > 该脚本需要`javascript-obfuscator`库，如未安装请先在项目目录 `npm install`
 
+# 说明
+
+本框架源码魔改自：https://github.com/im3x/Scriptables
