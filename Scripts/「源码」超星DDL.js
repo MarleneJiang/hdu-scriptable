@@ -16,7 +16,7 @@ class Widget extends Base {
   constructor(arg) {
     super(arg);
     this.logo = !!this.settings["logo"] ? this.settings["logo"] : "https://ys.mihoyo.com/main/favicon.ico";
-    this.name = !!this.settings["title"] ? this.settings["title"] : "每日委托";
+    this.name = !!this.settings["title"] ? this.settings["title"] : "世界任务";
     this.background = !!this.settings["background"] ? this.settings["background"] : "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background.png";
     this.desc = "hdu all in one";
     this.autoUpdate = true; // 是否自动更新,魔改用户不想被更新替换可以这里设置为false
@@ -27,7 +27,6 @@ class Widget extends Base {
     
     // 初始化账户
     this.registerAction("设置数字杭电账户", this.setUser);
-    this.registerAction("设置大物实验账户", this.setExptPwd);
     // 注册操作菜单
     this.registerAction("个性化设置", this.setWidget);
   }
@@ -63,20 +62,14 @@ class Widget extends Base {
     let data = [];
     data = await this.getData();
     if(data['code'] !=0){
-      return this.renderError(data['message']);
+      //将数组拼接为字符串\
+      return this.renderError(data['errors'].join("\n"));
     }
-    data = data['data'].list;
-    this.thisWeek = data['data'].week;
-
-    if("日一二三四五六".charAt(new Date().getDay()) == "六" || "日一二三四五六".charAt(new Date().getDay()) == "日"){
-      return this.renderError("周末的课被派蒙吃掉啦~");
-    }
+    data = data['data'];
     if (data.length == 0) {
-      return this.renderError("怎么办,委托都丘丘人被吃掉啦！")
+      return this.renderError("世界任务列表为空.");
     }
-    if (this.widgetFamily === "medium") {
-      return await this.renderWidget(data, 1);
-    } else if (this.widgetFamily === "large") {
+    if (this.widgetFamily === "large") {
       return await this.renderWidget(data, 5);
     } else {
       return await this.renderWidget(data, 1);
@@ -90,88 +83,25 @@ class Widget extends Base {
       new Color("#1c1c1d")
     );
 
-    const Courses = [];
-    let finish_num = 0;
-    const startTime = [
-      [8, 5],
-      [8, 55],
-      [10, 0],
-      [10, 50],
-      [11, 40],
-      [13, 30],
-      [14, 20],
-      [15, 15],
-      [16, 5],
-      [18, 30],
-    ];
-    const startTimeString = [
-      "8:05",
-      "8:55",
-      "10:00",
-      "10:50",
-      "11:40",
-      "13:30",
-      "14:20",
-      "15:15",
-      "16:05",
-      "18:30",
-    ];
-    data.forEach(async (course) => {
-      if (this.widgetFamily === "large") {
-        if (!compareNowTime(startTime[course.startSection - 1])) {
-          finish_num++;
-        }
-        course['startTimeString'] = startTimeString[course.startSection - 1];
-        course=await this.setExpt(course);
-        Courses.push(course);
-      } else {
-        if (compareNowTime(startTime[course.startSection - 1])) {
-          course['startTimeString'] = startTimeString[course.startSection - 1];
-          course=await this.setExpt(course);
-          Courses.push(course);
-        } else {
-          finish_num++;
-        }
-      }
-    });
-
     await this.renderHeader(
       w,
       this.logo,
       this.name +
       "(" +
-      finish_num.toString() +
-      "/" +
       data.length.toString() +
-      ")" +
-      "  " +
-      "周" +
-      "日一二三四五六".charAt(new Date().getDay())
+      ")"
     );
     w.addSpacer();
     let body = w.addStack();
     let bodyleft = body.addStack();
     bodyleft.layoutVertically();
-    let length = Courses.length;
+    let length = data.length;
     if (length > data_num) {
       length = data_num;
     }
-    if (length != 0) {
-      for (let i = 0; i < length; i++) {
-        bodyleft = await this.renderCell(bodyleft, Courses[i]);
-        bodyleft.addSpacer(6);
-      }
-    } else {
-      bodyleft.addSpacer();
-      let username = bodyleft.addText("旅行者");
-      username.font = Font.lightSystemFont(14);
-      let noCourse = bodyleft.addText("感谢你完成了今天的委托~");
-      noCourse.font = Font.lightSystemFont(14);
-      let fresh_time = bodyleft.addText(
-        "更新时间:" + new Date().toLocaleString()
-      );
-      fresh_time.font = Font.lightSystemFont(14);
-      bodyleft.addSpacer();
+    for (let i = 0; i < length; i++) {
+      bodyleft = await this.renderCell(bodyleft, data[i]);
+      bodyleft.addSpacer(6);
     }
     bodyleft.addSpacer();
     w.url = this.actionUrl("settings");
@@ -194,7 +124,7 @@ class Widget extends Base {
     left.addSpacer(5);
 
     let info = left.addText(
-      `限时${course['startTimeString']} 第${course["startSection"]}-${course["endSection"]}节 ${course["classRoom"]}`
+      `第${course["startSection"]}-${course["endSection"]}节 ${course["classRoom"]}`
     );
     info.font = Font.lightSystemFont(10);
     info.textOpacity = 0.6;
@@ -208,71 +138,22 @@ class Widget extends Base {
   async getData() {
     await this.updateVersion();
     // 解析设置，判断类型，获取对应数据
-    return await this.getDataForToday(
+    return await this.getChaoXingDDL(
       this.settings["hdu_username"],
-      this.settings["hdu_password"]
+      this.settings["hdu_password"],
     );
   }
 
   /**
-   * 获取课表数据、
+   * 获取课表数据
    */
-  async getDataForToday(
+  async getChaoXingDDL(
     username,
-    password
+    password,
   ) {
-    let url = `http://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&sourse=ios`;
+    let url = `https://api.baimeow.cn/ddl/all?cx_account=21063310&cx_passwd=qQ753357&cx_loginType=cas`;
     let arr = await this.fetchAPI(url);
-
-    let datas = [];
-    for (let i = 0; i < arr.data.list.length; i++) {
-      let t = arr.data[i];
-      datas.push({
-        url: `https://skl.hduhelp.com/#/call/course`,
-        ...t,
-      });
-    }
-    arr.data.list = datas;
     return arr;
-  }
-
-  /**
-   * 获取课表数据、
-   */
-  async getExpt(
-    username,
-    expt_pwd
-  ) {
-    let url = `http://lis.marlene.top/getPhy?username=${username}&expt_pwd=${expt_pwd}&sourse=ios`;
-    let arr = await this.fetchAPI(url);
-
-    if(arr.code!=0){
-      if(expt_pwd!='123456'){
-        this.notify(
-          "大物实验数据获取失败",
-          arr.message,
-          "https://support.qq.com/products/452934"
-        );
-      }
-      return [];
-    }
-    return arr.data;
-  }
-
-  async setExpt(course){
-    if(course.classRoom=="大学物理实验中心"){
-      const reg = /第(.*)周：/;
-      let exptData = await this.getExpt(this.settings["hdu_username"],this.settings["expt_pwd"]);
-      exptData.forEach((expt,index)=>{
-        const weekDay = (reg.exec(expt.time))[1];
-        if(weekDay==this.thisWeek.toString()){
-          course.courseName = expt.course;
-          course.teacherName = expt.teacher;
-          course.classRoom = expt.place;
-        }
-      })
-    }
-    return course
   }
 
   // http.get
@@ -331,30 +212,6 @@ class Widget extends Base {
     }
   }
 
-  async setExptPwd() {
-    const a = new Alert();
-    a.title = "账户设置";
-    a.message = "设置大物实验账户密码";
-    a.addSecureTextField("密码");
-    a.addAction("确定");
-    a.addCancelAction("取消");
-    const i = await a.presentAlert();
-    if (i == -1) {
-      return;
-    }
-    if (!a.textFieldValue(0)) {
-      const b = new Alert();
-      b.title = "错误，密码为空";
-      b.message = "请重新设置";
-      b.addAction("确定");
-      await b.presentAlert();
-      return;
-    } else {
-      this.settings["expt_pwd"] = a.textFieldValue(0);
-      this.saveSettings(true);
-    }
-  }
-
 
   async setWidget(){
     const a = new Alert();
@@ -383,9 +240,9 @@ class Widget extends Base {
 
   async updateVersion() {
     const scripts = {
-      moduleName: "「妙妙屋」杭电课表",
+      moduleName: "「妙妙屋」超星DDL",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.7",
+      version: "1.0.0",
     };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
