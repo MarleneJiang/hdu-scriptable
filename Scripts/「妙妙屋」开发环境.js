@@ -171,7 +171,7 @@ class Base {
     }
     let _title = header.addText(title)
     if (color) _title.textColor = color
-    _title.textOpacity = 0.7
+    // _title.textOpacity = 0.7
     _title.font = Font.boldSystemFont(15)
     widget.addSpacer(6)
     return widget
