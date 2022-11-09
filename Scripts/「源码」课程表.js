@@ -15,15 +15,20 @@ const { Base } = require("./「妙妙屋」开发环境");
 class Widget extends Base {
   constructor(arg) {
     super(arg);
-    this.logo = !!this.settings["logo"] ? this.settings["logo"] : "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E6%AF%8F%E6%97%A5%E5%A7%94%E6%89%98.png";
-    this.name = !!this.settings["title"] ? this.settings["title"] : "每日委托";
-    this.background = !!this.settings["background"] ? this.settings["background"] : "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background_2.png";
+    this.logo = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E6%AF%8F%E6%97%A5%E5%A7%94%E6%89%98.png";
+    this.name = "每日委托";
+    this.background = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background_2.png";
     this.desc = "hdu all in one";
     this.autoUpdate = true; // 是否自动更新,魔改用户不想被更新替换可以这里设置为false
     // 当前设置的存储key（提示：可通过桌面设置不同参数，来保存多个设置）
     let _md5 = this.md5(module.filename);
     this.CACHE_KEY = `cache_${_md5}`;
 
+    this.scripts = {
+      moduleName: "「妙妙屋」杭电课表",
+      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
+      version: "1.1.2",
+    };
     
     // 初始化账户
     this.registerAction("设置数字杭电账户", this.setUser);
@@ -63,22 +68,22 @@ class Widget extends Base {
   // 渲染组件
   async render() {
     if (!this.settings["hdu_username"] || !this.settings["hdu_password"]) {
-      return this.renderError("请先设置数字杭电账户.")
+      return await this.renderError("请先设置数字杭电账户.")
     }
     let data = [];
     data = await this.getData();
     if(data['code'] !=0){
-      return this.renderError(data['message']);
+      return await this.renderError(data['message']);
     }
     this.thisWeek = data['data'].week;
     data = data['data'].list;
     
 
     if("日一二三四五六".charAt(new Date().getDay()) == "六" || "日一二三四五六".charAt(new Date().getDay()) == "日"){
-      return this.renderError("周末的课被派蒙吃掉啦~");
+      return await this.renderError("周末的课被派蒙吃掉啦~");
     }
     if (data.length == 0) {
-      return this.renderError("怎么办,委托都丘丘人被吃掉啦！")
+      return await this.renderError("怎么办,委托都丘丘人被吃掉啦！")
     }
     if (this.widgetFamily === "large") {
       return await this.renderWidget(data, 5);
@@ -89,9 +94,8 @@ class Widget extends Base {
 
   async renderWidget(data, data_num) {
     let w = new ListWidget();
-    w.backgroundImage = await this.shadowImage(await (new Request (this.background)).loadImage(),'#000000',0.2);
+    w.backgroundImage = await this.shadowImage(await (new Request (!!this.settings["background"] ? this.settings["background"] : this.background)).loadImage(),'#000000',0.2);
 
-    const Courses = [];
     let finish_num = 0;
     const startTime = [
       [8, 5],
@@ -117,29 +121,31 @@ class Widget extends Base {
       "16:05",
       "18:30",
     ];
-    
-    data.forEach(async (course) => {
+    let Courses = [];
+    for(let course of data){
       if (this.widgetFamily === "large") {
         if (!compareNowTime(startTime[course.startSection - 1])) {
           finish_num++;
         }
         course['startTimeString'] = startTimeString[course.startSection - 1];
         course=await this.setExpt(course);
+        course['url']= `https://skl.hduhelp.com/#/call/course`;
         Courses.push(course);
       } else {
         if (compareNowTime(startTime[course.startSection - 1])) {
           course['startTimeString'] = startTimeString[course.startSection - 1];
           course=await this.setExpt(course);
+          course['url']= `https://skl.hduhelp.com/#/call/course`;
           Courses.push(course);
         } else {
           finish_num++;
         }
       }
-    });
+    }
     await this.renderHeader(
       w,
-      this.logo,
-      this.name +
+      !!this.settings["logo"] ? this.settings["logo"] : this.logo ,
+      !!this.settings["title"] ? this.settings["title"] : this.name +
       "(" +
       finish_num.toString() +
       "/" +
@@ -195,7 +201,7 @@ class Widget extends Base {
     let left = body.addStack();
     left.layoutVertically();
     let content = left.addText(course["courseName"]);
-    content.font = Font.lightSystemFont(14);
+    content.font = Font.systemFont(14);
     content.textColor = new Color("#000000");
     content.lineLimit = 2;
 
@@ -232,16 +238,6 @@ class Widget extends Base {
   ) {
     let url = `http://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&sourse=ios`;
     let arr = await this.fetchAPI(url);
-
-    let datas = [];
-    for (let i = 0; i < arr.data.list.length; i++) {
-      let t = arr.data.list[i];
-      datas.push({
-        url: `https://skl.hduhelp.com/#/call/course`,
-        ...t,
-      });
-    }
-    arr.data.list = datas;
     return arr;
   }
 
@@ -271,7 +267,7 @@ class Widget extends Base {
   async setExpt(course){
     if(course.classRoom=="大学物理实验中心"){
       const reg = /第(.*)周：/;
-      let exptData = await this.getExpt(this.settings["hdu_username"],this.settings["expt_pwd"]);
+      let exptData = await this.getExpt(this.settings["hdu_username"],!!this.settings["expt_pwd"]?this.settings["expt_pwd"]:'123456');
       exptData.forEach((expt,index)=>{
         const weekDay = (reg.exec(expt.time))[1];
         if(weekDay==this.thisWeek.toString()){
@@ -378,39 +374,59 @@ class Widget extends Base {
     if (i == -1) {
       return;
     }
-    if (!a.textFieldValue(0)) {
+    if (!!a.textFieldValue(0)) {
       this.settings["logo"] = a.textFieldValue(0);
     }
-    if (!a.textFieldValue(1)) {
+    if (!!a.textFieldValue(1)) {
       this.settings["title"] = a.textFieldValue(1);
     }
-    if (!a.textFieldValue(2)) {
+    if (!!a.textFieldValue(2)) {
       this.settings["background"] = a.textFieldValue(2);
     }
     this.saveSettings(true);
   }
 
+  async actionSettings(){
+    // 弹出选择菜单
+    const actions = this._actions
+    const _actions = [
+      async () => {
+        Safari.openInApp("https://support.qq.com/products/452934", false)
+      }
+    ]
+    const alert = new Alert()
+    alert.title = this.name
+    alert.message = this.desc
+    alert.addAction("反馈交流")
+    for (let _ in actions) {
+      alert.addAction(_)
+      _actions.push(actions[_])
+    }
+    alert.addCancelAction("取消操作")
+    const idx = await alert.presentSheet()
+    if (_actions[idx]) {
+      const func = _actions[idx]
+      await func()
+    }
+    return
+}
+
   async updateVersion() {
-    const scripts = {
-      moduleName: "「妙妙屋」杭电课表",
-      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.1.0",
-    };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
       +new Date()
     );
     const p = await vreq.loadJSON();
     if (
-      p[scripts.moduleName] &&
-      p[scripts.moduleName].version > scripts.version &&
+      p[this.scripts.moduleName] &&
+      p[this.scripts.moduleName].version > this.scripts.version &&
       this.autoUpdate
     ) {
-      const URL = p[scripts.moduleName].url + "?_=" + +new Date();
+      const URL = p[this.scripts.moduleName].url + "?_=" + +new Date();
       const req = new Request(URL);
       const res = await req.loadString();
 
-      const NAME = scripts.moduleName;
+      const NAME = this.scripts.moduleName;
 
       const FPATH = FileManager.local().documentsDirectory() + `/${NAME}.js`;
 // 這裏不能格式化，否則會報錯！！
@@ -436,9 +452,9 @@ ${res}`;
       if (FileManager.local().fileExists(FPATH)) {
         this.notify(
           "更新成功",
-          scripts.moduleName +
+          this.scripts.moduleName +
           "小组件已更新至" +
-          p[scripts.moduleName].version +
+          p[this.scripts.moduleName].version +
           "！稍后刷新生效。有任何问题欢迎反馈！",
           "https://support.qq.com/products/452934"
         );

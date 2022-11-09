@@ -15,20 +15,27 @@ const { Base } = require("./「妙妙屋」开发环境");
 class Widget extends Base {
   constructor(arg) {
     super(arg);
-    this.logo = !!this.settings["logo"] ? this.settings["logo"] : "https://ys.mihoyo.com/main/favicon.ico";
-    this.name = !!this.settings["title"] ? this.settings["title"] : "世界任务";
-    this.background = !!this.settings["background"] ? this.settings["background"] : "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background.png";
+    this.logo = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E4%B8%96%E7%95%8C%E4%BB%BB%E5%8A%A1.png";
+    this.name = "世界任务";
+    this.background = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background_3.png";
     this.desc = "hdu all in one";
     this.autoUpdate = true; // 是否自动更新,魔改用户不想被更新替换可以这里设置为false
     // 当前设置的存储key（提示：可通过桌面设置不同参数，来保存多个设置）
     let _md5 = this.md5(module.filename);
     this.CACHE_KEY = `cache_${_md5}`;
 
+    this.scripts = {
+      moduleName: "「妙妙屋」杭电DDL",
+      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
+      version: "1.0.0",
+    };
+
     
     // 初始化账户
-    this.registerAction("设置数字杭电账户", this.setUser);
+    this.registerAction("设置超星学习通账户", this.setUser);
     // 注册操作菜单
     this.registerAction("个性化设置", this.setWidget);
+
   }
 
   async isUsingDarkAppearance() {
@@ -39,15 +46,18 @@ class Widget extends Base {
     return r;
   }
 
-  renderError(data){
+  async renderError(data){
     let w = new ListWidget();
+    w.backgroundImage = await this.shadowImage(await (new Request (this.background)).loadImage(),'#000000',0.2);
     w.addSpacer();
     let body = w.addStack();
     body.layoutVertically();
     let error = body.addText(data);
-    error.font = Font.lightSystemFont(16);
+    error.font = Font.boldSystemFont(16);
+    error.textColor = new Color("#ffffff");
     let fresh_time = body.addText("更新时间:" + new Date().toLocaleString());
-    fresh_time.font = Font.lightSystemFont(14);
+    fresh_time.font = Font.semiboldSystemFont(14);
+    fresh_time.textColor = new Color("#ffffff");
     body.addSpacer(6);
     w.addSpacer();
     w.url = this.actionUrl("settings");
@@ -56,8 +66,8 @@ class Widget extends Base {
 
   // 渲染组件
   async render() {
-    if (!this.settings["hdu_username"] || !this.settings["hdu_password"]) {
-      return this.renderError("请先设置数字杭电账户.")
+    if (!this.settings["cx_username"] || !this.settings["cx_password"]) {
+      return this.renderError("请先设置超星学习通账户.")
     }
     let data = [];
     data = await this.getData();
@@ -67,8 +77,14 @@ class Widget extends Base {
     }
     data = data['data'];
     if (data.length == 0) {
-      return this.renderError("世界任务列表为空.");
+      return this.renderError("旅行者\n你的世界任务都做完啦~");
     }
+
+    // 根据time排序
+    data.sort((a,b)=>{
+      return a.time-b.time
+    })
+
     if (this.widgetFamily === "large") {
       return await this.renderWidget(data, 5);
     } else {
@@ -78,18 +94,17 @@ class Widget extends Base {
 
   async renderWidget(data, data_num) {
     let w = new ListWidget();
-    w.backgroundColor = Color.dynamic(
-      new Color("#EFEFF4"),
-      new Color("#1c1c1d")
-    );
+    w.backgroundImage = await this.shadowImage(await (new Request (!!this.settings["background"] ? this.settings["background"] : this.background)).loadImage(),'#000000',0.2);
+
 
     await this.renderHeader(
       w,
-      this.logo,
-      this.name +
-      "(" +
+      !!this.settings["logo"] ? this.settings["logo"] : this.logo ,
+      (!!this.settings["title"] ? this.settings["title"] : this.name) +
+      "("+
       data.length.toString() +
-      ")"
+      ")",
+      new Color("#ffffff")
     );
     w.addSpacer();
     let body = w.addStack();
@@ -100,6 +115,24 @@ class Widget extends Base {
       length = data_num;
     }
     for (let i = 0; i < length; i++) {
+      //计算时间差
+      let times = (new Date((data[i].time)*1000)).getTime() - getChineseDate().getTime();
+      const days=Math.floor(times/(24*1000*3600));//计算相差的天数
+      const leave=times%(24*3600*1000);//计算天数后剩余的毫秒数
+      const h=Math.floor(leave/(3600*1000));//计算小时数
+      //计算分钟数
+      const h_leave=leave%(3600*1000);
+      const min=Math.floor(h_leave/(60*1000));
+      //计算秒数
+      const min_leave=h_leave%(60*1000);
+      const sec=Math.floor(min_leave/1000);
+      const time = (!!days?(days.toString()+'天'):'')+(!!h?(h.toString()+'小时'):'')+((!!min&&!days)?(min.toString()+'分钟'):'')+((!!sec&&!days)?(sec.toString()+'秒'):'');
+      data[i].remain_time = time;
+      data[i].emergency = 0;
+      if(days>3)data[i].emergency++
+      if(days>7)data[i].emergency++
+      
+
       bodyleft = await this.renderCell(bodyleft, data[i]);
       bodyleft.addSpacer(6);
     }
@@ -108,27 +141,28 @@ class Widget extends Base {
 
     return w;
   }
-  async renderCell(widget, course) {
+  async renderCell(widget, work) {
     let body = widget.addStack();
 
     body.setPadding(10, 10, 10, 10);
-    body.backgroundColor = Color.dynamic(Color.white(), new Color("#2c2c2d"));
+    const colorList =['#E29AAA','#E0C3A2','#FFFFFF']
+    body.backgroundColor = new Color(colorList[work['emergency']], 0.9);
     body.cornerRadius = 10;
-    body.url = this.actionUrl("open-url", course["url"]);
+    body.url = this.actionUrl("open-url", 'http://i.mooc.chaoxing.com/');
     let left = body.addStack();
     left.layoutVertically();
-    let content = left.addText(course["courseName"]);
-    content.font = Font.lightSystemFont(14);
+    let content = left.addText(work["title"]);
+    content.font = Font.systemFont(14);
+    content.textColor = new Color("#000000");
     content.lineLimit = 2;
 
     left.addSpacer(5);
 
-    let info = left.addText(
-      `第${course["startSection"]}-${course["endSection"]}节 ${course["classRoom"]}`
-    );
+    let info = left.addText('剩余'+work['remain_time']+' '+work['course']);
     info.font = Font.lightSystemFont(10);
+    info.textColor = new Color("#000000");
     info.textOpacity = 0.6;
-    info.lineLimit = 2;
+    info.lineLimit = 1;
 
     body.addSpacer();
 
@@ -139,19 +173,19 @@ class Widget extends Base {
     await this.updateVersion();
     // 解析设置，判断类型，获取对应数据
     return await this.getChaoXingDDL(
-      this.settings["hdu_username"],
-      this.settings["hdu_password"],
+      this.settings["cx_username"],
+      this.settings["cx_password"],
     );
   }
 
   /**
-   * 获取课表数据
+   * 获取DDL数据
    */
   async getChaoXingDDL(
     username,
     password,
   ) {
-    let url = `https://api.baimeow.cn/ddl/all?cx_account=21063310&cx_passwd=qQ753357&cx_loginType=cas`;
+    let url = `https://api.baimeow.cn/ddl/all?cx_account=${username}&cx_passwd=${password}&cx_loginType=cx`;
     let arr = await this.fetchAPI(url);
     return arr;
   }
@@ -189,9 +223,9 @@ class Widget extends Base {
   async setUser() {
     const a = new Alert();
     a.title = "账户设置";
-    a.message = "设置数字杭电账户";
-    a.addTextField("学号");
-    a.addSecureTextField("密码");
+    a.message = "设置学习通账户";
+    a.addTextField("学习通账号");
+    a.addSecureTextField("学习通密码");
     a.addAction("确定");
     a.addCancelAction("取消");
     const i = await a.presentAlert();
@@ -206,8 +240,8 @@ class Widget extends Base {
       await b.presentAlert();
       return;
     } else {
-      this.settings["hdu_username"] = a.textFieldValue(0);
-      this.settings["hdu_password"] = a.textFieldValue(1);
+      this.settings["cx_username"] = a.textFieldValue(0);
+      this.settings["cx_password"] = a.textFieldValue(1);
       this.saveSettings(true);
     }
   }
@@ -226,39 +260,59 @@ class Widget extends Base {
     if (i == -1) {
       return;
     }
-    if (!a.textFieldValue(0)) {
+    if (!!a.textFieldValue(0)) {
       this.settings["logo"] = a.textFieldValue(0);
     }
-    if (!a.textFieldValue(1)) {
+    if (!!a.textFieldValue(1)) {
       this.settings["title"] = a.textFieldValue(1);
     }
-    if (!a.textFieldValue(2)) {
+    if (!!a.textFieldValue(2)) {
       this.settings["background"] = a.textFieldValue(2);
     }
     this.saveSettings(true);
   }
 
+  async actionSettings(){
+      // 弹出选择菜单
+      const actions = this._actions
+      const _actions = [
+        async () => {
+          Safari.openInApp("https://support.qq.com/products/452934", false)
+        }
+      ]
+      const alert = new Alert()
+      alert.title = this.name
+      alert.message = this.desc
+      alert.addAction("反馈交流")
+      for (let _ in actions) {
+        alert.addAction(_)
+        _actions.push(actions[_])
+      }
+      alert.addCancelAction("取消操作")
+      const idx = await alert.presentSheet()
+      if (_actions[idx]) {
+        const func = _actions[idx]
+        await func()
+      }
+      return
+  }
+
   async updateVersion() {
-    const scripts = {
-      moduleName: "「妙妙屋」超星DDL",
-      url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.0",
-    };
     const vreq = new Request(
       "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/scriptVersion.json?_=" +
       +new Date()
     );
     const p = await vreq.loadJSON();
     if (
-      p[scripts.moduleName] &&
-      p[scripts.moduleName].version > scripts.version &&
+      p[this.scripts.moduleName] &&
+      p[this.scripts.moduleName].version > this.scripts.version &&
       this.autoUpdate
     ) {
-      const URL = p[scripts.moduleName].url + "?_=" + +new Date();
+      const URL = p[this.scripts.moduleName].url + "?_=" + +new Date();
       const req = new Request(URL);
       const res = await req.loadString();
 
-      const NAME = scripts.moduleName;
+      const NAME = this.scripts.moduleName;
 
       const FPATH = FileManager.local().documentsDirectory() + `/${NAME}.js`;
 // 這裏不能格式化，否則會報錯！！
@@ -284,9 +338,9 @@ ${res}`;
       if (FileManager.local().fileExists(FPATH)) {
         this.notify(
           "更新成功",
-          scripts.moduleName +
+          this.scripts.moduleName +
           "小组件已更新至" +
-          p[scripts.moduleName].version +
+          p[this.scripts.moduleName].version +
           "！稍后刷新生效。有任何问题欢迎反馈！",
           "https://support.qq.com/products/452934"
         );
@@ -301,16 +355,6 @@ ${res}`;
   }
 }
 
-function compareNowTime(time) {
-  const nowTime = getChineseDate();
-  const time2 = nowTime.getHours() * 60 + nowTime.getMinutes();
-  const time1 = time[0] * 60 + time[1];
-  if (time1 < time2) {
-    return false;
-  } else {
-    return true;
-  }
-}
 
 function getChineseDate() {
   return new Date(
@@ -325,5 +369,5 @@ function getChineseDate() {
 const { Testing } = require("./「妙妙屋」开发环境");
 await Testing(Widget);
 
-//node pack.js Scripts/「源码」课程表.js
-//node encode.js Dist/「妙妙屋」课程表.js
+//node pack.js Scripts/「源码」超星DDL.js
+//node encode.js Dist/「妙妙屋」超星DDL.js
