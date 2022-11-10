@@ -17,7 +17,7 @@ class Widget extends Base {
     super(arg);
     this.logo = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E4%B8%96%E7%95%8C%E4%BB%BB%E5%8A%A1.png";
     this.name = "世界任务";
-    this.background = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/background_3.png";
+    this.background = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/102614118_p2.png";
     this.desc = "hdu all in one";
     this.autoUpdate = true; // 是否自动更新,魔改用户不想被更新替换可以这里设置为false
     // 当前设置的存储key（提示：可通过桌面设置不同参数，来保存多个设置）
@@ -27,7 +27,7 @@ class Widget extends Base {
     this.scripts = {
       moduleName: "「妙妙屋」杭电DDL",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.0",
+      version: "1.0.3",
     };
 
     
@@ -94,7 +94,17 @@ class Widget extends Base {
 
   async renderWidget(data, data_num) {
     let w = new ListWidget();
-    w.backgroundImage = await this.shadowImage(await (new Request (!!this.settings["background"] ? this.settings["background"] : this.background)).loadImage(),'#000000',0.2);
+
+    // set linear color 
+    let gradient = new LinearGradient();
+    gradient.locations = [0, 1];
+    gradient.colors = [
+      new Color("#516742", 0.2),
+      new Color("#FFFFFF", 0),
+    ];
+    w.backgroundGradient = gradient;
+    w.backgroundImage = await (new Request (!!this.settings["background"] ? this.settings["background"] : this.background)).loadImage();
+    
 
 
     await this.renderHeader(
@@ -126,7 +136,7 @@ class Widget extends Base {
       //计算秒数
       const min_leave=h_leave%(60*1000);
       const sec=Math.floor(min_leave/1000);
-      const time = (!!days?(days.toString()+'天'):'')+(!!h?(h.toString()+'小时'):'')+((!!min&&!days)?(min.toString()+'分钟'):'')+((!!sec&&!days)?(sec.toString()+'秒'):'');
+      const time = (!!days?(days.toString()+'天'):'')+(!!h?(h.toString()+'小时'):'')+((!!min&&!days)?(min.toString()+'分钟'):'');
       data[i].remain_time = time;
       data[i].emergency = 0;
       if(days>3)data[i].emergency++
@@ -145,7 +155,8 @@ class Widget extends Base {
     let body = widget.addStack();
 
     body.setPadding(10, 10, 10, 10);
-    const colorList =['#E29AAA','#E0C3A2','#FFFFFF']
+    const colorList =['#7F8C51','#D5D977','#FFFFFF']
+    const colorList_reverse =['#FFFFFF','#FFFFFF','#7F8C51']
     body.backgroundColor = new Color(colorList[work['emergency']], 0.9);
     body.cornerRadius = 10;
     body.url = this.actionUrl("open-url", 'http://i.mooc.chaoxing.com/');
@@ -153,14 +164,14 @@ class Widget extends Base {
     left.layoutVertically();
     let content = left.addText(work["title"]);
     content.font = Font.systemFont(14);
-    content.textColor = new Color("#000000");
+    content.textColor = new Color(colorList_reverse[work['emergency']]);
     content.lineLimit = 2;
 
     left.addSpacer(5);
 
-    let info = left.addText('剩余'+work['remain_time']+' '+work['course']);
+    let info = left.addText(work['from']+' '+work['remain_time']+' '+work['course']);
     info.font = Font.lightSystemFont(10);
-    info.textColor = new Color("#000000");
+    info.textColor = new Color(colorList_reverse[work['emergency']]);
     info.textOpacity = 0.6;
     info.lineLimit = 1;
 
