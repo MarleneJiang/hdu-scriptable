@@ -15,7 +15,7 @@ const { Base } = require("./「妙妙屋」开发环境");
 class Widget extends Base {
   constructor(arg) {
     super(arg);
-    this.logo = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E4%B8%96%E7%95%8C%E4%BB%BB%E5%8A%A1.png";
+    this.logo = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/1_waifu2x_art_noise3_scale_waifu2x_art_noise3_scale.png";
     this.name = "世界任务";
     this.background = "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/102614118_p2.png";
     this.desc = "hdu all in one";
@@ -27,12 +27,13 @@ class Widget extends Base {
     this.scripts = {
       moduleName: "「妙妙屋」杭电DDL",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.3",
+      version: "1.0.6",
     };
 
     
     // 初始化账户
     this.registerAction("设置超星学习通账户", this.setUser);
+    this.registerAction("设置在浙学账户", this.setZjooc);
     // 注册操作菜单
     this.registerAction("个性化设置", this.setWidget);
 
@@ -71,7 +72,7 @@ class Widget extends Base {
     }
     let data = [];
     data = await this.getData();
-    if(data['code'] !=0){
+    if(data['code'] ==-1){
       //将数组拼接为字符串\
       return this.renderError(data['errors'].join("\n"));
     }
@@ -186,6 +187,8 @@ class Widget extends Base {
     return await this.getChaoXingDDL(
       this.settings["cx_username"],
       this.settings["cx_password"],
+      !!this.settings["zjooc_account"]?this.settings["zjooc_account"]:'',
+      !!this.settings["zjooc_password"]?this.settings["zjooc_password"]:''
     );
   }
 
@@ -195,8 +198,10 @@ class Widget extends Base {
   async getChaoXingDDL(
     username,
     password,
+    zjooc_account = "",
+    zjooc_password = ""
   ) {
-    let url = `https://api.baimeow.cn/ddl/all?cx_account=${username}&cx_passwd=${password}&cx_loginType=cx`;
+    let url = `https://api.baimeow.cn/ddl/all?cx_account=${username}&cx_passwd=${password}&cx_loginType=cx&zjooc_account=${zjooc_account}&zjooc_passwd=${zjooc_password}`;
     let arr = await this.fetchAPI(url);
     return arr;
   }
@@ -253,6 +258,32 @@ class Widget extends Base {
     } else {
       this.settings["cx_username"] = a.textFieldValue(0);
       this.settings["cx_password"] = a.textFieldValue(1);
+      this.saveSettings(true);
+    }
+  }
+
+  async setZjooc() {
+    const a = new Alert();
+    a.title = "账户设置";
+    a.message = "设置在浙学账户";
+    a.addTextField("在浙学账号");
+    a.addSecureTextField("在浙学密码");
+    a.addAction("确定");
+    a.addCancelAction("取消");
+    const i = await a.presentAlert();
+    if (i == -1) {
+      return;
+    }
+    if (!a.textFieldValue(0) || !a.textFieldValue(1)) {
+      const b = new Alert();
+      b.title = "错误，账户或密码为空";
+      b.message = "请重新设置";
+      b.addAction("确定");
+      await b.presentAlert();
+      return;
+    } else {
+      this.settings["zjooc_account"] = a.textFieldValue(0);
+      this.settings["zjooc_password"] = a.textFieldValue(1);
       this.saveSettings(true);
     }
   }
