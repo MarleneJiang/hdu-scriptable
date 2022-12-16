@@ -27,7 +27,7 @@ class Widget extends Base {
     this.scripts = {
       moduleName: "「妙妙屋」杭电DDL",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.0.6",
+      version: "1.0.7",
     };
 
     
@@ -77,7 +77,7 @@ class Widget extends Base {
       return this.renderError(data['errors'].join("\n"));
     }
     data = data['data'];
-    if (data.length == 0) {
+    if (data == null || !data || data.length == 0) {
       return this.renderError("旅行者\n你的世界任务都做完啦~");
     }
 
