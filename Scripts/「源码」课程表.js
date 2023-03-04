@@ -27,7 +27,7 @@ class Widget extends Base {
     this.scripts = {
       moduleName: "「妙妙屋」杭电课表",
       url: "https://gitee.com/JiangNoah/hdu-scriptable/raw/master/%E3%80%8C%E5%A6%99%E5%A6%99%E5%B1%8B%E3%80%8D%E8%AF%BE%E7%A8%8B%E8%A1%A8.js",
-      version: "1.1.2",
+      version: "1.1.4",
     };
     
     // 初始化账户
@@ -79,9 +79,9 @@ class Widget extends Base {
     data = data['data'].list;
     
 
-    if("日一二三四五六".charAt(new Date().getDay()) == "六" || "日一二三四五六".charAt(new Date().getDay()) == "日"){
-      return await this.renderError("周末的课被派蒙吃掉啦~");
-    }
+//     if("日一二三四五六".charAt(new Date().getDay()) == "六" || "日一二三四五六".charAt(new Date().getDay()) == "日"){
+//       return await this.renderError("周末的课被派蒙吃掉啦~");
+//     }
     if (data.length == 0) {
       return await this.renderError("怎么办,委托都丘丘人被吃掉啦！")
     }
@@ -236,7 +236,7 @@ class Widget extends Base {
     username,
     password
   ) {
-    let url = `http://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&sourse=ios`;
+    let url = `https://lis.marlene.top/getSklTodayCourse?username=${username}&password=${password}&sourse=ios`;
     let arr = await this.fetchAPI(url);
     return arr;
   }
@@ -248,7 +248,7 @@ class Widget extends Base {
     username,
     expt_pwd
   ) {
-    let url = `http://lis.marlene.top/getPhy?username=${username}&expt_pwd=${expt_pwd}&sourse=ios`;
+    let url = `https://lis.marlene.top/getPhy?username=${username}&expt_pwd=${expt_pwd}&sourse=ios`;
     let arr = await this.fetchAPI(url);
 
     if(arr.code!=0){
